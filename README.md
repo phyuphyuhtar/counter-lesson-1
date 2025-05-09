@@ -1,101 +1,83 @@
-#### Rewritten draft
+# Understanding `App.jsx`: Resetting Negative Counts in React
 
-## About the Project: Stumble Dudes
+## 1 | State Setup
 
-**Stumble Dudes** is a wild, laugh-out-loud multiplayer game set in the vibrant world of **Horizon Worlds**. Whether you're teaming up with friends or facing off against strangers, this chaotic spectacle invites players to race, tumble, and sabotage their way through colorful obstacle courses. Packed with unpredictable physics and cheeky fun, it’s a game designed to keep you on your toes and smiling all the way to the finish line.
+```jsx
+const [count, setCount] = useState(0);
+````
 
-### **Inspirations**
+* **`count`** – the current number shown in the UI
+* **`setCount`** – the updater that schedules a re‑render every time it’s called
 
-The heart of *Stumble Dudes* beats with chaos, competition, and sabotage. Here's what inspired its creation:
+---
 
-1. **Squid Game**  
-   Imagine high-stakes intensity wrapped in playful mayhem! The absurdly challenging obstacles in *Stumble Dudes* take a page from the high-tension, anything-goes vibes of *Squid Game*. Every leap, fall, and close call keeps you on edge and loving the unpredictable madness.  
-   
-2. **Battle Royale Platformers (think *Fall Guys*)**  
-   The frenzied multiplayer antics of *Fall Guys* shaped the laughter-filled world of *Stumble Dudes*. Whether you’re forming shaky alliances or delighting in some well-timed sabotage, it’s all about those unpredictable, hilarious player interactions.  
+## 2 | Increment / Decrement Buttons
 
-3. **Mario 64**  
-   The platforming greatness of *Mario 64* inspired the game’s tight, satisfying controls. Navigating the tricky terrains of *Stumble Dudes* feels challenging but oh-so-rewarding when you nail it.  
+```jsx
+<button onClick={() => setCount(c => c + 1)}>+</button>
+<button onClick={() => setCount(c => c - 1)}>-</button>
+```
 
-4. **Mario Kart**  
-   Power-ups, traps, and sneaky moves! *Mario Kart* inspired the in-game collectible system, giving you tools to outpace or outplay your rivals. Strategy and mischief collide to crank up the fun factor in every race.  
+* Uses the functional form `setCount(c => …)` so each click works with the freshest value.
+* Every click causes a new render where anything that reads `count` (like `checkNumber()`) runs again.
 
-### **Core Gameplay Mechanics**
+---
 
-At its core, *Stumble Dudes* is built for frenzied fun, encouraging skillful play, mischievous tricks, and endless replayability. Here’s a breakdown of how it all comes together:
+## 3 | `checkNumber()` — the Gatekeeper
 
-1. **Platforming Chaos**  
-   - Precise **running and jumping** mechanics challenge your agility, timing, and nerves as you dodge obstacles and chase victory.  
-   - Physical **bumping and colliding** fuels slapstick moments where anything can happen. Knock someone off balance or get catapulted into the unknown – the chaos is real!  
+```jsx
+function checkNumber() {
+  if (count >= 0) {
+    return count;        // ✅ valid; just show it
+  } else {
+    setCount(() => 0);   // 🛑 force count back to 0
+    // React schedules another render; this return value is discarded
+  }
+}
+```
 
-2. **Items & Sabotage**  
-   - Go for **power-ups** like speed boosts or invincibility to surge ahead.  
-   - Got a mischievous streak? Deploy **traps and projectiles** to slow opponents down and revel in the mayhem.  
-   - Use the **points-to-purchases system** to grab items mid-race or stockpile your points for a strategic advantage when it counts.  
+### What happens when `count` is negative?
 
-3. **Points & Rankings**  
-   - **Finish Line Rewards**: First place scores big, while everyone else earns points based on their rank when the timer runs out.  
-   - **Daily Leaderboards** fuel your competitive edge. Race to tally your best time of the day and claim bragging rights with bonus points and leaderboard glory!  
+1. **Render pass ①**
 
-4. **Race Timers**  
-   - It’s a race against the clock! Players scramble to beat the timer while maneuvering through fast-paced, obstacle-filled chaos.  
+   * `count` = ‑1 → `if` fails → `else` runs.
+2. **`setCount(() => 0)`**
 
-Every mechanic works together to deliver a dynamic, adrenaline-pumping experience that leaves players eager for "just one more round."  
+   * Marks component dirty; queues **render pass ②**.
+3. **Render pass ②**
 
-### **Creation Process**
+   * `count` has now been reset to **0**.
+   * `count >= 0` is true → `0` is returned and displayed.
 
-*Stumble Dudes* came to life within the creative sandbox of **Horizon Worlds**, combining precision and imagination to craft an unforgettable game.  
+---
 
-- With the **desktop editor**, we meticulously designed immersive levels and whimsical obstacles, perfecting every jump, twist, and turn.  
-- Then, with VR tools, we tested and refined the gameplay to ensure it feels fluid, intuitive, and downright fun for everyone.  
+## 4 | Why Calling `setState` During Render Is Risky
 
-### **Challenges We Tackled**
+* Creates an extra render (performance hit).
+* Can cause infinite loops if not guarded.
+* Better: clamp the value **before** saving it.
 
-1. **Mobile Playtesting**  
-   Getting the game to run smoothly on mobile proved tricky. Testing links often caused issues, slowing down optimization for mobile players.  
-   
-2. **Balancing Act**  
-   Fine-tuning gameplay to make obstacles fun yet fair was no small feat. Feedback and iteration were key to creating a balanced, enjoyable experience.  
+---
 
-### **What We’re Proud Of**
+## 5 | Cleaner Pattern (No State Updates in Render)
 
-- Introducing a competitive **scoring and leaderboard system** that keeps players coming back for more.  
-- Crafting a high-energy multiplayer game filled with endless laughter, friendly sabotage, and truly memorable moments.  
-- Mastering the **Horizon desktop editor** to build a polished, visually stunning game world brimming with character.  
+```jsx
+function clamp(n) {
+  return n < 0 ? 0 : n;
+}
 
-### **What We Learned**
+export default function App() {
+  const [count, setCount] = useState(0);
 
-The development of *Stumble Dudes* taught us a ton, including how to create a game that feels great for both VR and mobile players. Key takeaways included:  
+  return (
+    <>
+      <h3>count is {count}</h3>
+      <button onClick={() => setCount(c => clamp(c + 1))}>+</button>
+      <button onClick={() => setCount(c => clamp(c - 1))}>-</button>
+    </>
+  );
+}
+```
 
-- **Level Design**  
-  Striking the perfect balance between challenging and accessible.  
-   
-- **Horizon Desktop Editor**  
-  Unlocking the full potential of Horizon’s creation tools to design intricate, dynamic environments.  
+*The UI never paints a negative number, and all state changes happen inside event handlers (React best practice).*
 
-- **Camera Angles**  
-  Ensuring mobile players enjoy the best perspective for maximum chaos and fun.  
-
-### **What’s Next for Stumble Dudes**
-
-The race is far from over! We’re already cooking up fresh ideas to keep you stumbling in style, including:
-
-- **More Collectibles**  
-  From quirky gizmos to rare treasures, we’re adding even more surprises for you to find.  
-
-- **New Power-Ups**  
-  Expand your bag of tricks with items that boost your game or cleverly sabotage your rivals.  
-
-- **Seasonal Themes**  
-  Rotating obstacles and festive themes will keep the gameplay exciting, with new challenges around every corner.  
-
-Get ready for even more excitement as we continue to expand and evolve the world of *Stumble Dudes*.  
-
-*Dive into the fun today and stumble your way to victory in Horizon Worlds!*  
-
-## Built With  
-
-- **Horizon Worlds**  
-   Combining desktop precision with hands-on VR creativity to create fun, immersive experiences.  
-
-Your draft has been jazzed up with a lively and engaging tone! Let me know if there's anything else you'd like to tweak or enhance.
